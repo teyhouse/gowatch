@@ -48,7 +48,7 @@ func Log(message string) {
 
 	command := "EventCreate"
 	args := []string{"/T", "INFORMATION", "/ID", "777", "/L", "APPLICATION",
-		"/SO", "Go", "/D", message}
+		"/SO", "GOWATCH", "/D", message}
 	cmd := exec.Command(command, args...)
 	err := cmd.Run()
 	if err != nil {
