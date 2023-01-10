@@ -4,6 +4,8 @@ Just define files or folders (or mixed-mode) within the settings.json.
    
 ![screenshot](screenshot.png?raw=true)
   
+[![goreleaser](https://github.com/teyhouse/gowatch/actions/workflows/main.yml/badge.svg)](https://github.com/teyhouse/gowatch/actions/workflows/main.yml)  
+  
 Example settings.json:
 ```
 {
