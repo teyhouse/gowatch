@@ -1,0 +1,12 @@
+# .goreleaser.yml
+builds:
+- id: buildtest
+  binary: buildtest
+  main: .
+  goos:
+    - linux
+    - windows
+  goarch:
+    - amd64
+    - arm64
+    - arm
