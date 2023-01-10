@@ -1,7 +1,7 @@
 # .goreleaser.yml
 builds:
-- id: buildtest
-  binary: buildtest
+- id: gowatch
+  binary: gowatch
   main: .
   goos:
     - linux
