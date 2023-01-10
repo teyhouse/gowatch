@@ -4,7 +4,6 @@ Just define files or folders (or mixed-mode) within the settings.json.
    
 ![screenshot](screenshot.png?raw=true)
   
-[![goreleaser](https://github.com/teyhouse/gowatch/actions/workflows/main.yml/badge.svg)](https://github.com/teyhouse/gowatch/actions/workflows/main.yml)  
   
 Example settings.json:
 ```
@@ -15,7 +14,9 @@ Example settings.json:
     }
 }
 ```
-  
+
+[![goreleaser](https://github.com/teyhouse/gowatch/actions/workflows/main.yml/badge.svg)](https://github.com/teyhouse/gowatch/actions/workflows/main.yml) 
+    
 # 📃 Requirements
 Always make sure to have your settings.json in the same folder as the gowatch-binary.  
 The hashes.json will be recreated, if not moved or deleted.
