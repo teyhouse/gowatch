@@ -2,12 +2,11 @@ package watcher
 
 import (
 	"fmt"
-	"log"
-	"log/syslog"
 	"sync"
 
 	"github.com/teyhouse/gowatch/filehandler"
 	"github.com/teyhouse/gowatch/filehash"
+	"github.com/teyhouse/gowatch/logger"
 )
 
 // List of Files you want to watch from settings.json
@@ -55,7 +54,9 @@ func getHashes() {
 					if filehandler.CheckDebug() {
 						fmt.Printf("Hashes don't match: %s:%s\n", key, value)
 					}
-					log.Printf("File-Change detected: %s:%s", key, value)
+					//log.Printf("File-Change detected: %s:%s", key, value)
+					message := fmt.Sprintf("File-Change detected: %s:%s", key, value)
+					logger.Log(message)
 					savedhashes.Store(key, hash)
 				}
 			} else {
@@ -75,11 +76,6 @@ func SaveHashes() {
 }
 
 func Watch() {
-	//Setup Logger: change from STDOUT to SYSLOG
-	logwriter, e := syslog.New(syslog.LOG_NOTICE, "[GOWATCH]")
-	if e == nil {
-		log.SetOutput(logwriter)
-	}
 
 	getSettings()
 	getStoreHashes()
