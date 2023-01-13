@@ -6,7 +6,7 @@ import (
 	"github.com/teyhouse/gowatch/watcher"
 )
 
-const version = "1.1"
+const version = "1.2"
 
 func main() {
 	fmt.Printf("📁 GOWATCH - Version %s\n", version)

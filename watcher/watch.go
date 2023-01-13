@@ -57,6 +57,7 @@ func getHashes() {
 					//log.Printf("File-Change detected: %s:%s", key, value)
 					message := fmt.Sprintf("File-Change detected: %s:%s", key, value)
 					logger.Log(message)
+					logger.LogHTTP(message)
 					savedhashes.Store(key, hash)
 				}
 			} else {

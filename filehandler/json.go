@@ -13,7 +13,7 @@ import (
 // Recursive file slice
 var stmp []string
 
-func fileExists(filename string) bool {
+func FileExists(filename string) bool {
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
 		return false
@@ -83,8 +83,20 @@ func GetSettings() []string {
 	return filelist
 }
 
+func GetEventURI() string {
+	data, err := os.ReadFile("event.json")
+	if err != nil {
+		fmt.Print(err)
+	}
+
+	var result map[string]any
+	json.Unmarshal([]byte(data), &result)
+	eventuri := result["http"].(map[string]any)
+	return fmt.Sprint(eventuri["request"])
+}
+
 func GetHashes(filelist []string) sync.Map {
-	if !fileExists("hashes.json") {
+	if !FileExists("hashes.json") {
 		file, err := os.Create("hashes.json")
 		if err != nil {
 			fmt.Printf("Error creating hashes.json: %s \n", err)

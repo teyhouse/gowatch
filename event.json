@@ -1,0 +1,5 @@
+{
+    "http": {
+      "request": "https://monitoring.nfeed.org/api/push/fFn9qgwuXN?status=up&msg=OK&ping="
+    }
+}

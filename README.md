@@ -19,7 +19,7 @@ Example settings.json:
     
 # 📃 Requirements
 Always make sure to have your settings.json in the same folder as the gowatch-binary.  
-The hashes.json will be recreated, if not moved or deleted.
+The hashes.json will be recreated, if not moved or deleted. The file event.json is also optional.
   
   
 # 🛠️ Usage
@@ -33,6 +33,8 @@ It would also be possible to check in realtime, using watch:
 # 📝 Logs
 Every time GOWATCH detects a change in one of your files, it will be logged in your syslog:  
 ![screenshot](log.png?raw=true)
+  
+You can also use the file event.json to trigger a custom HTTP-GET, which will automatically attach a new GET-Parameter to your URI, called ``&logmessage``, containing the base64-encoded log-message.  
   
 # 💭 Debugmode
 You can use the ```--debug``` flag / arg to get more details on which changes GOWATCH has detected:  
