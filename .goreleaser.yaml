@@ -12,14 +12,19 @@ builds:
     - arm64
     - arm
 
-archives:
-  -
-    id: my-archive
-    rlcp: true
-    builds:
-    - default
-    format: zip
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    files:
-      - settings.json
-      - event.json
+release:
+  github:
+    owner: teyhouse
+    name: gowatch
+  header: |
+    ## GOWATCH ({{ .Date }})
+
+    Attention regarding the Windows-Build: Please run this with administrative privileges!
+  footer: |
+    ## Thanks!
+
+    Those were the changes on {{ .Tag }}!
+  name_template: "{{.ProjectName}}-v{{.Version}} {{.Env.USER}}"
+  extra_files:
+    - glob: ./settings.json
+    - glob: ./event.json
