@@ -25,10 +25,7 @@ release:
 
     Those were the changes on {{ .Tag }}!
   name_template: "{{.ProjectName}}-v{{.Version}} {{.Env.USER}}"
-  extra_files:
-    - glob: ./settings.json
-    - glob: ./event.json
-
+  
 archives:
   -
       id: gowatch
