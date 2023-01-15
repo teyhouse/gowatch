@@ -27,7 +27,10 @@ func walk(s string, d fs.DirEntry, err error) error {
 		return err
 	}
 	if !d.IsDir() {
-		stmp = append(stmp, s)
+		//Check first if file exists - avoid trouble with old symbolic-links
+		if FileExists(s) {
+			stmp = append(stmp, s)
+		}
 	}
 	return nil
 }
@@ -73,7 +76,10 @@ func GetSettings() []string {
 			// iterate through all files in directory
 			filepath.WalkDir(value.(string), walk)
 		} else {
-			filelist = append(filelist, value.(string))
+			//check first if file exists - avoid trouble with old symbolic-links
+			if FileExists(value.(string)) {
+				filelist = append(filelist, value.(string))
+			}
 		}
 	}
 
