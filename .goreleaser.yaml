@@ -13,8 +13,6 @@ builds:
     - arm
 
 release:
-  ids: 
-    - GOWATCH
   github:
     owner: teyhouse
     name: gowatch
@@ -30,3 +28,12 @@ release:
   extra_files:
     - glob: ./settings.json
     - glob: ./event.json
+
+archives:
+  -
+      id: gowatch
+      format: zip
+      rlcp: true
+      files:
+      - settings.json
+      - event.json
