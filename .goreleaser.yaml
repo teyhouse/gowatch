@@ -10,3 +10,6 @@ builds:
     - amd64
     - arm64
     - arm
+  extra_files:
+    - glob: ./settings.json
+    - glob: ./event.json
