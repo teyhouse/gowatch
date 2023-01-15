@@ -29,7 +29,7 @@ release:
 archives:
   -
       id: gowatch
-      format: zip
+      #format: zip
       rlcp: true
       files:
       - settings.json
