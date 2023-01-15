@@ -13,6 +13,8 @@ builds:
     - arm
 
 release:
+  ids: 
+    - GOWATCH
   github:
     owner: teyhouse
     name: gowatch
@@ -21,7 +23,7 @@ release:
 
     Attention regarding the Windows-Build: Please run this with administrative privileges!
   footer: |
-    ## Thanks!
+    ## EOF
 
     Those were the changes on {{ .Tag }}!
   name_template: "{{.ProjectName}}-v{{.Version}} {{.Env.USER}}"
