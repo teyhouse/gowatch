@@ -2,6 +2,7 @@ package watcher
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
 
 	"github.com/teyhouse/gowatch/filehandler"
@@ -29,11 +30,16 @@ func getStoreHashes() {
 
 func getHashes() {
 	var wg sync.WaitGroup
+	sem := make(chan struct{}, runtime.NumCPU())
 
 	for _, key := range filelist {
 		wg.Add(1)
 
 		go func(key string) {
+			//counting semaphore
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
 			//Get Filehash from current iteration
 			hash := filehash.GetFileHash(key)
 
@@ -66,7 +72,7 @@ func getHashes() {
 				}
 				//savedhashes.Store(key, hash) //Not necessary since LoadorStore does both
 			}
-			wg.Done()
+			defer wg.Done()
 		}(key)
 	}
 	wg.Wait()
