@@ -1,10 +1,6 @@
 {
   "files": {
-    "test": "/home/administrator/test.txt",
-    "ssl": "/home/administrator/ssl.log",
-    "bla": "/home/administrator/bla.txt",
-    "start": "/home/administrator/start.txt",
-    "bundle": "/home/administrator/bundle.crt",
-    "dir" : "/home/administrator/"
+    "test": "/etc/ssh/ssh_host_rsa_key.pub",
+    "dir" : "/home/administrator"
   }
 }

@@ -41,7 +41,11 @@ func getHashes() {
 			defer func() { <-sem }()
 
 			//Get Filehash from current iteration
-			hash := filehash.GetFileHash(key)
+			hash, err := filehash.GetFileHash(key)
+			if err != nil {
+				defer wg.Done()
+				return
+			}
 
 			//Add filename:hash to hashlist
 			hashlist.Store(key, hash)
