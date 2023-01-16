@@ -8,15 +8,17 @@ import (
 	"os"
 
 	"github.com/teyhouse/gowatch/filehandler"
+	"github.com/teyhouse/gowatch/logger"
 )
 
 func GetFileHash(path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		//log.Fatal(err)
+		message := fmt.Sprintf("Error on file %s: %s\n", path, err)
 		if filehandler.CheckDebug() {
-			fmt.Printf("Error on file %s: %s\n", path, err)
+			fmt.Print(message)
 		}
+		logger.Log(message)
 		return "", err
 	}
 	defer f.Close()
