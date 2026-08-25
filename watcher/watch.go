@@ -10,97 +10,99 @@ import (
 	"github.com/teyhouse/gowatch/logger"
 )
 
-// List of Files you want to watch from settings.json
-var filelist = make([]string, 0)
-
-// Generated Hashes for all files
+// Generated Hashes for all files (current run)
 var hashlist sync.Map
 
 // Saved List of Hashes from hashes.json
-var savedhashes sync.Map
+var savedhashes *sync.Map
 
-func getSettings() {
-	filelist = filehandler.GetSettings()
-}
-
-func getStoreHashes() {
-	//filelist is passed in order to prevent old items being added again
-	savedhashes = filehandler.GetHashes(filelist)
-}
-
-func getHashes() {
+func getHashes(filelist []string) {
 	var wg sync.WaitGroup
+
+	// Counting semaphore sized to the CPU count, acquired BEFORE the
+	// goroutine is spawned, so concurrency is truly bounded and no more
+	// than NumCPU file handles are open at once.
 	sem := make(chan struct{}, runtime.NumCPU())
 
 	for _, key := range filelist {
+		sem <- struct{}{}
 		wg.Add(1)
 
-		go func(key string) {
-			//counting semaphore
-			sem <- struct{}{}
+		go func() {
+			defer wg.Done()
 			defer func() { <-sem }()
 
-			//Get Filehash from current iteration
 			hash, err := filehash.GetFileHash(key)
 			if err != nil {
-				defer wg.Done()
+				message := fmt.Sprintf("Error on file %s: %s", key, err)
+				if filehandler.CheckDebug() {
+					fmt.Println(message)
+				}
+				logger.Log(message)
 				return
 			}
 
-			//Add filename:hash to hashlist
 			hashlist.Store(key, hash)
 
-			//Check if hash is in savedhashes - add otherwise
+			// Check if hash is in savedhashes - add otherwise
 			value, found := savedhashes.LoadOrStore(key, hash)
-			if found {
+			if !found {
 				if filehandler.CheckDebug() {
-					fmt.Printf("Found: %s:%s\n", key, value)
+					fmt.Printf("Not found: %s:%v\n", key, value)
 				}
-
-				//Check if hash still matches with stored hash
-				if hash == value {
-					//fmt.Println("Hashes match.")
-				} else {
-					if filehandler.CheckDebug() {
-						fmt.Printf("Hashes don't match: %s:%s\n", key, value)
-					}
-					//log.Printf("File-Change detected: %s:%s", key, value)
-					message := fmt.Sprintf("File-Change detected: %s:%s", key, value)
-					logger.Log(message)
-					logger.LogHTTP(message)
-					savedhashes.Store(key, hash)
-				}
-			} else {
-				if filehandler.CheckDebug() {
-					fmt.Printf("Not found: %s:%s\n", key, value)
-				}
-				//savedhashes.Store(key, hash) //Not necessary since LoadorStore does both
+				return
 			}
-			defer wg.Done()
-		}(key)
+
+			if filehandler.CheckDebug() {
+				fmt.Printf("Found: %s:%s\n", key, value)
+			}
+
+			if hash == value {
+				return // unchanged
+			}
+
+			if filehandler.CheckDebug() {
+				fmt.Printf("Hashes don't match: %s:%s\n", key, value)
+			}
+			message := fmt.Sprintf("File-Change detected: %s:%s", key, value)
+			logger.Log(message)
+			logger.LogHTTP(message)
+			savedhashes.Store(key, hash)
+		}()
 	}
 	wg.Wait()
 }
 
-func SaveHashes() {
-	filehandler.SaveHashes(savedhashes)
+func SaveHashes() error {
+	return filehandler.SaveHashes(savedhashes)
 }
 
-func Watch() {
+func Watch() error {
+	filelist, err := filehandler.GetSettings()
+	if err != nil {
+		return err
+	}
 
-	getSettings()
-	getStoreHashes()
-	getHashes()
+	// filelist is passed in order to prevent old items being added again
+	savedhashes, err = filehandler.GetHashes(filelist)
+	if err != nil {
+		return err
+	}
 
-	//Iterate synced map - debug output
+	getHashes(filelist)
+
+	// Iterate synced map - debug output
 	if filehandler.CheckDebug() {
 		fmt.Println("\n\nIterating over saved hashes:")
-		savedhashes.Range(func(key, value interface{}) bool {
+		savedhashes.Range(func(key, value any) bool {
 			fmt.Printf("%s:%s\n", key, value)
 			return true
 		})
 	}
 
-	SaveHashes()
-	fmt.Printf("DONE - checked %s files.\n", fmt.Sprint(len(filelist)))
+	if err := SaveHashes(); err != nil {
+		return err
+	}
+	fmt.Printf("DONE - checked %d files.\n", len(filelist))
+	return nil
 }

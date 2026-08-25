@@ -7,11 +7,16 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"syscall"
-	"time"
 
 	"golang.org/x/sys/windows"
 )
+
+// Elevating spawns a second instance of this program; do it at most once
+// per process, otherwise every Log() call would spawn another elevated
+// copy of gowatch.
+var elevateOnce sync.Once
 
 func runMeElevated() {
 	verb := "runas"
@@ -42,9 +47,8 @@ func amAdmin() bool {
 
 func Log(message string) {
 	if !amAdmin() {
-		runMeElevated()
+		elevateOnce.Do(runMeElevated)
 	}
-	time.Sleep(1 * time.Second)
 
 	command := "EventCreate"
 	args := []string{"/T", "INFORMATION", "/ID", "777", "/L", "APPLICATION",

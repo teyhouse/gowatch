@@ -1,16 +1,20 @@
-# .goreleaser.yml
+# .goreleaser.yaml (goreleaser v2 schema)
+
+version: 2
 
 builds:
-- id: gowatch
-  binary: gowatch
-  main: .
-  goos:
-    - linux
-    - windows
-  goarch:
-    - amd64
-    - arm64
-    - arm
+  - id: gowatch
+    binary: gowatch
+    main: .
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    goarm:
+      - "7"
 
 release:
   github:
@@ -27,10 +31,10 @@ release:
   name_template: "GOWATCH-v{{.Version}}"
 
 archives:
-  -
-      id: gowatch
-      #format: zip
-      rlcp: true
-      files:
+  - id: gowatch
+    # format: zip  <- uncomment to switch from tar.gz to zip
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    files:
       - settings.json
       - event.json

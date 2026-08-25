@@ -2,146 +2,141 @@ package filehandler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
+	"slices"
 	"sync"
 )
 
-// Recursive file slice
-var stmp []string
+// Explicit struct fields over map[string]interface{}: malformed or hostile
+// JSON fails at parse time instead of panicking on a bad type assertion.
+type settingsFile struct {
+	Files map[string]string `json:"files"`
+}
+
+type eventFile struct {
+	HTTP struct {
+		Request string `json:"request"`
+	} `json:"http"`
+}
 
 func FileExists(filename string) bool {
 	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
+	if err != nil {
 		return false
 	}
 	return !info.IsDir()
 }
 
-// Iterate through directroys (recursive) - this will return files only (including the full path)
-func walk(s string, d fs.DirEntry, err error) error {
-	if err != nil {
-		return err
-	}
-	if !d.IsDir() {
-		//Check first if file exists - avoid trouble with old symbolic-links
-		if FileExists(s) {
-			stmp = append(stmp, s)
+// walk appends regular files (including their full path) to files.
+// Old / dangling symbolic links are skipped via FileExists.
+func walk(files *[]string) fs.WalkDirFunc {
+	return func(s string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil // unreadable entry: skip, don't abort the whole walk
 		}
-	}
-	return nil
-}
-
-// Since slices.Contain is not included in the current upstream-version of Go 1.19
-func contains(elems []string, v string) bool {
-	for _, s := range elems {
-		if v == s {
-			return true
+		if !d.IsDir() && FileExists(s) {
+			*files = append(*files, s)
 		}
+		return nil
 	}
-	return false
 }
 
 // Check if args contain --debug
 func CheckDebug() bool {
-	if arg := strings.Join(os.Args[1:], ""); strings.Contains(string(arg), "--debug") {
-		return true
-	}
-	return false
+	return slices.Contains(os.Args[1:], "--debug")
 }
 
-func GetSettings() []string {
+func GetSettings() ([]string, error) {
 	data, err := os.ReadFile("settings.json")
 	if err != nil {
-		fmt.Print(err)
+		return nil, fmt.Errorf("reading settings.json: %w", err)
 	}
 
-	var result map[string]any
-	json.Unmarshal([]byte(data), &result)
-	files := result["files"].(map[string]any)
+	var settings settingsFile
+	if err := json.Unmarshal(data, &settings); err != nil {
+		return nil, fmt.Errorf("parsing settings.json: %w", err)
+	}
 
-	var filelist = make([]string, 0)
-
-	for _, value := range files {
-		//Check if File or Directory
-		fileInfo, err := os.Stat(value.(string))
+	filelist := make([]string, 0)
+	for _, value := range settings.Files {
+		fileInfo, err := os.Stat(value)
 		if err != nil {
-			fmt.Print(err)
+			fmt.Printf("Skipping %s: %s\n", value, err)
+			continue
 		}
 
 		if fileInfo.IsDir() {
-			// iterate through all files in directory
-			filepath.WalkDir(value.(string), walk)
-		} else {
-			//check first if file exists - avoid trouble with old symbolic-links
-			if FileExists(value.(string)) {
-				filelist = append(filelist, value.(string))
+			// iterate through all (recursive) files of the directory
+			if err := filepath.WalkDir(value, walk(&filelist)); err != nil {
+				return nil, fmt.Errorf("walking directory %s: %w", value, err)
 			}
+		} else if FileExists(value) {
+			filelist = append(filelist, value)
 		}
 	}
 
-	//Merge recursive files
-	filelist = append(filelist, stmp...)
-
-	return filelist
+	return filelist, nil
 }
 
-func GetEventURI() string {
+func GetEventURI() (string, error) {
 	data, err := os.ReadFile("event.json")
 	if err != nil {
-		fmt.Print(err)
+		return "", fmt.Errorf("reading event.json: %w", err)
 	}
 
-	var result map[string]any
-	json.Unmarshal([]byte(data), &result)
-	eventuri := result["http"].(map[string]any)
-	return fmt.Sprint(eventuri["request"])
+	var event eventFile
+	if err := json.Unmarshal(data, &event); err != nil {
+		return "", fmt.Errorf("parsing event.json: %w", err)
+	}
+	if event.HTTP.Request == "" {
+		return "", fmt.Errorf("event.json: missing \"http.request\"")
+	}
+	return event.HTTP.Request, nil
 }
 
-func GetHashes(filelist []string) sync.Map {
-	if !FileExists("hashes.json") {
-		file, err := os.Create("hashes.json")
-		if err != nil {
-			fmt.Printf("Error creating hashes.json: %s \n", err)
-		}
-		defer file.Close()
-	}
+// GetHashes loads hashes.json and keeps only entries whose key is still
+// present in filelist.
+func GetHashes(filelist []string) (*sync.Map, error) {
+	var res map[string]string
 
 	data, err := os.ReadFile("hashes.json")
-	if err != nil {
-		fmt.Print(err)
+	switch {
+	case err == nil:
+		if err := json.Unmarshal(data, &res); err != nil {
+			return nil, fmt.Errorf("parsing hashes.json: %w", err)
+		}
+	case errors.Is(err, fs.ErrNotExist):
+		res = map[string]string{} // first run: nothing saved yet
+	default:
+		return nil, fmt.Errorf("reading hashes.json: %w", err)
 	}
 
-	var res map[string]interface{}
-	json.Unmarshal([]byte(data), &res)
-
-	var savedhashes sync.Map
-
+	savedhashes := &sync.Map{}
 	for k, v := range res {
-		//Check if Key (= filename) is still wanted, based on settings.json
-		if contains(filelist, k) {
+		if slices.Contains(filelist, k) {
 			savedhashes.Store(k, v)
 		}
 	}
-	return savedhashes
+	return savedhashes, nil
 }
 
-func SaveHashes(savedhashes sync.Map) {
+func SaveHashes(savedhashes *sync.Map) error {
 	m := make(map[string]string)
-
-	savedhashes.Range(func(key, value interface{}) bool {
+	savedhashes.Range(func(key, value any) bool {
 		m[key.(string)] = value.(string)
 		return true
 	})
 
 	jsonStr, err := json.Marshal(m)
-
 	if err != nil {
-		fmt.Printf("Error: %s", err.Error())
+		return fmt.Errorf("serializing hashes: %w", err)
 	}
-
-	_ = os.WriteFile("hashes.json", jsonStr, 0644)
+	if err := os.WriteFile("hashes.json", jsonStr, 0o600); err != nil {
+		return fmt.Errorf("writing hashes.json: %w", err)
+	}
+	return nil
 }
