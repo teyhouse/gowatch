@@ -26,10 +26,8 @@ func getHashes(filelist []string) {
 
 	for _, key := range filelist {
 		sem <- struct{}{}
-		wg.Add(1)
 
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			defer func() { <-sem }()
 
 			hash, err := filehash.GetFileHash(key)
@@ -68,7 +66,7 @@ func getHashes(filelist []string) {
 			logger.Log(message)
 			logger.LogHTTP(message)
 			savedhashes.Store(key, hash)
-		}()
+		})
 	}
 	wg.Wait()
 }
